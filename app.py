@@ -23,11 +23,19 @@ if st.button("🔍 Find Recipes"):
     if user_input.strip():
         top_recipes, visited = search_engine.search(user_input, top_k=5)
 
+        # --- Save visited nodes for exploration page ---
+        visited_df = pd.DataFrame([
+            {"Recipe": df.iloc[idx]["Title"], "Heuristic": score}
+            for idx, score in visited
+        ])
+        visited_df.to_csv("visited_nodes.csv", index=False)
+
         # --- Visualization of Best First Search expansion ---
         st.subheader("🧠 Best First Search Exploration:")
         st.write("Recipes explored in order of heuristic similarity:")
         for idx, score in visited[:10]:
             st.write(f"→ {df.iloc[idx]['Title']} (Heuristic: {score:.3f})")
+
 
         st.divider()
         st.subheader("🍽️ Top Matching Recipes:")
@@ -51,3 +59,7 @@ if st.button("🔍 Find Recipes"):
             st.divider()
     else:
         st.warning("Please enter at least one ingredient.")
+# --- Navigation link to exploration page ---
+st.markdown("---")
+if st.button("📊 View Full Best First Search Exploration"):
+    st.switch_page("pages/1_🧠_Exploration.py")
