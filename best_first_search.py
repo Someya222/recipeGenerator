@@ -22,8 +22,8 @@ class BestFirstSearchRecipeFinder:
         recipe_vec = self.tfidf_matrix[recipe_index]
         return cosine_similarity(user_input_vec, recipe_vec).flatten()[0]
 
-    def search(self, user_input, top_k=4):
-        """Find top_k unique recipes with highest heuristic scores"""
+    def search(self, user_input, top_k=3):
+        """Find exactly top_k unique recipes with highest heuristic scores"""
         user_input_vec = self.vectorizer.transform([user_input])
         seen_names = set()
         results = []
@@ -56,14 +56,15 @@ class BestFirstSearchRecipeFinder:
                 if len(results) < top_k:
                     results.append(recipe_data)
                 
-                # Add to exploration (up to 4 unique recipes)
-                if len(exploration) < 4:
+                # Add to exploration (exactly top_k unique recipes)
+                if len(exploration) < top_k:
                     exploration.append((idx, h_val))
                 
-                # Stop if we have enough for both results and exploration
-                if len(results) >= top_k and len(exploration) >= 4:
+                # Stop as soon as we have enough for both results and exploration
+                if len(results) >= top_k and len(exploration) >= top_k:
                     break
         
-        return pd.DataFrame(results), exploration
+        # Ensure we return exactly top_k results
+        return pd.DataFrame(results[:top_k]), exploration[:top_k]
 
 

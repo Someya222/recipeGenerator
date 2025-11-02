@@ -46,10 +46,10 @@ try:
     
     # Create tabs for different visualizations
     tab1, tab2, tab3, tab4 = st.tabs([
-        "📊 Search Overview", 
-        "📈 Heuristic Analysis", 
-        "🔄 Search Path",
-        "🧩 Ingredient Network"
+        "Search Overview", 
+        "Heuristic Analysis", 
+        "Search Path",
+        "Ingredient Network"
     ])
     
     with tab1:
@@ -148,7 +148,7 @@ try:
             except Exception as e:
                 st.warning(f"Could not generate word cloud: {str(e)}")
         else:
-            with st.expander("🔍 Install Word Cloud (Optional)"):
+            with st.expander("Install Word Cloud (Optional)"):
                 st.code("pip install wordcloud", language="bash")
                 st.write("Install the wordcloud package to see a visualization of common ingredients.")
         
@@ -158,7 +158,7 @@ try:
         st.metric("Average Recipe Name Length", f"{avg_ingredients:.1f} words")
     
     # Raw data section
-    with st.expander("📋 View Raw Exploration Data"):
+    with st.expander("View Raw Exploration Data"):
         st.dataframe(visited_df)
 
     # Add some space at the bottom
@@ -170,5 +170,5 @@ except FileNotFoundError:
     st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjR2Z3ZzZ2VtY2F3bGZ6d2F3eWJjNnFzZ2JxY2RqZzB6b3Z0cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7aTskHEUdgCQAXde/giphy.gif", 
              caption="Run a search to see the magic happen!")
     
-    if st.button("🔙 Back to Search"):
+    if st.button("Back to Search"):
         st.switch_page("app.py")
