@@ -5,49 +5,15 @@ import time
 import random
 from PIL import Image
 from best_first_search import BestFirstSearchRecipeFinder
-from beam_search_recipe_finder import BeamSearchRecipeFinder
 import json
 from streamlit_lottie import st_lottie
 from streamlit_tags import st_tags
 
-# Initialize session state for search results and algorithm
+# Initialize session state for search results
 if 'search_results' not in st.session_state:
     st.session_state.search_results = None
 if 'search_query' not in st.session_state:
     st.session_state.search_query = ""
-if 'search_algorithm' not in st.session_state:
-    st.session_state.search_algorithm = "Best-First Search"
-
-# --- Load dataset ---
-@st.cache_data
-def load_data():
-    df = pd.read_csv("recipes3k_cleaned.csv")  # use the CSV you created
-    df = df.dropna(subset=["ingredients"])
-    return df
-
-# Initialize search engines
-def initialize_search_engines():
-    if 'search_engines' not in st.session_state:
-        # Make sure data is loaded
-        df = load_data()
-        st.session_state.search_engines = {
-            "Best-First Search": BestFirstSearchRecipeFinder(df),
-            "Beam Search": BeamSearchRecipeFinder(df, beam_width=3)
-        }
-
-# Initialize session state for search results and algorithm
-if 'search_results' not in st.session_state:
-    st.session_state.search_results = None
-if 'search_query' not in st.session_state:
-    st.session_state.search_query = ""
-if 'search_algorithm' not in st.session_state:
-    st.session_state.search_algorithm = "Best-First Search"
-
-# Initialize search engines after all functions are defined
-initialize_search_engines()
-
-# Get the selected search engine
-search_engine = st.session_state.search_engines[st.session_state.search_algorithm]
 
 # Load Lottie animation
 def load_lottie_file(filepath: str):
@@ -70,8 +36,15 @@ def get_suggestions(text):
     text = text.lower()
     return [ing for ing in INGREDIENT_SUGGESTIONS if text in ing.lower()][:5]
 
-# Load the data
+# --- Load dataset ---
+@st.cache_data
+def load_data():
+    df = pd.read_csv("recipes3k_cleaned.csv")  # use the CSV you created
+    df = df.dropna(subset=["ingredients"])
+    return df
+
 df = load_data()
+search_engine = BestFirstSearchRecipeFinder(df)
 
 # Custom CSS for better UI
 st.markdown("""
@@ -148,25 +121,14 @@ st.markdown("""
 with st.container():
     st.markdown("""
     <div style='text-align: center; margin-bottom: 30px;'>
-        <h1 style='font-size: 2.5rem; margin-bottom: 10px;'> What's in my fridge?</h1>
+        <h1 style='font-size: 2.5rem; margin-bottom: 10px;'>What's in my fridge?</h1>
         <p style='font-size: 1.1rem; color: #4a5568;'>Enter ingredients you have and discover delicious recipes you can make!</p>
     </div>
     """, unsafe_allow_html=True)
 
-# Search algorithm selection
-st.markdown("### Choose Search Algorithm")
-st.session_state.search_algorithm = st.selectbox(
-    "Select search algorithm:",
-    ["Best-First Search", "Beam Search"],
-    index=["Best-First Search", "Beam Search"].index(st.session_state.get('search_algorithm', 'Best-First Search')),
-    help="Best-First Search explores the most promising nodes first. Beam Search is more memory efficient but may not find the optimal path.",
-    key='algorithm_selector'
-)
-
 # Search with suggestions
-st.markdown("### Enter Ingredients")
 user_input = st_tags(
-    label='',
+    label='Enter ingredients:',
     text='Add ingredients...',
     value=[],
     suggestions=INGREDIENT_SUGGESTIONS,
@@ -177,20 +139,27 @@ user_input = st_tags(
 # Convert list to string for the search
 ingredients_str = ' '.join(user_input) if user_input else "tomato onion garlic"
 
-# Get the appropriate search engine based on selection
-search_engine = st.session_state.search_engines[st.session_state.search_algorithm]
-
 # Check if we have previous search results to display
 if st.session_state.search_results is not None:
     top_recipes, visited, search_query = st.session_state.search_results
     st.success(f"Found {len(top_recipes)} delicious recipe{'s' if len(top_recipes) != 1 else ''} that match your ingredients!")
-    st.subheader("Top Matching Recipes")
+    
+    # Center the heading and caption
+    st.markdown("""
+    <style>
+    .centered {
+        text-align: center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<h2 class="centered">Top Matching Recipes</h2>', unsafe_allow_html=True)
     
     # Display the search query that was used
-    st.caption(f"Showing results for: {search_query}")
+    st.markdown(f'<p class="centered">Showing results for: <strong>{search_query}</strong></p>', unsafe_allow_html=True)
     
     # Add a button to clear the results
-    if st.button(" Clear Results", type="secondary"):
+    if st.button("Clear Results", type="secondary"):
         st.session_state.search_results = None
         st.rerun()
     
@@ -198,7 +167,7 @@ if st.session_state.search_results is not None:
     st.write("")
 else:
     # Only show the search interface if we don't have results to display
-    if st.button("Find Recipes", type="primary", use_container_width=True):
+    if st.button("🔍 Find Recipes", type="primary", use_container_width=True):
         if ingredients_str.strip():
             # Store the search query
             st.session_state.search_query = ingredients_str
@@ -217,7 +186,7 @@ else:
                     
                 with col2:
                     # Container for the loading messages
-                    status_text = st.markdown("###  Starting your search...")
+                    status_text = st.markdown("### Starting your search...")
                     
                 # Add some space
                 st.write("")
@@ -235,7 +204,7 @@ else:
             
             def perform_search():
                 try:
-                    top_recipes, visited = search_engine.search(ingredients_str, top_k=3)  # Changed from 5 to 3
+                    top_recipes, visited = search_engine.search(ingredients_str, top_k=5)
                     result_queue.put((top_recipes, visited, None))
                 except Exception as e:
                     result_queue.put((None, None, str(e)))
@@ -390,10 +359,10 @@ for idx, (_, row) in enumerate(top_recipes.iterrows(), 1):
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Save visited nodes data for the exploration page
+        # Store visited nodes data in session state for the exploration page
         visited_data = [{"Recipe": df.iloc[int(idx)]['name'], "Heuristic": score} for idx, score in visited]
         if visited_data:
-            pd.DataFrame(visited_data).to_csv("visited_nodes.csv", index=False)
+            st.session_state.exploration_data = pd.DataFrame(visited_data)
             
         # Add smooth scroll to top button
         st.markdown("""
@@ -418,19 +387,17 @@ for idx, (_, row) in enumerate(top_recipes.iterrows(), 1):
         <a href='#' class='back-to-top' title='Back to top'>↑</a>
         """, unsafe_allow_html=True)
 
-        # --- Save exploration data for next page ---
+        # --- Store exploration data in session state for the exploration page ---
         if visited:  # Check if visited is not empty
-            visited_df = pd.DataFrame(
+            st.session_state.exploration_data = pd.DataFrame(
                 [(df.iloc[int(idx)]['name'], score) for idx, score in visited],
                 columns=["Recipe", "Heuristic"]
             )
-            visited_df.to_csv("visited_nodes.csv", index=False)
         else:
             st.warning("No recipes found. Please try different ingredients.")
             st.stop()
 
 # --- Navigation link to exploration page ---
 st.markdown("---")
-if st.button("📊 View Full Best First Search Exploration"):
-    st.switch_page("pages/1_🧠_Exploration.py")
-
+if st.button("View Full Best First Search Exploration"):
+    st.switch_page("pages/1__Exploration.py")
