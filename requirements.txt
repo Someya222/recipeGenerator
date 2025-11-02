@@ -7,3 +7,4 @@ streamlit-lottie>=0.0.4
 streamlit-tags>=1.2.8
 scikit-learn>=1.0.2
 numpy>=1.21.0
+networkx>=3.0
