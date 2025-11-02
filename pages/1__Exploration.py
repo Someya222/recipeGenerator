@@ -141,23 +141,17 @@ with tab4:
     st.subheader("Recipe Similarity Network")
     st.info("This visualization shows how different recipes are connected based on their ingredients")
 
-    # 🔹 Ingredient Network Visualization (add this part)
-    import plotly.graph_objects as go
-    import networkx as nx
-
+    # Ingredient Network Visualization
     try:
-        # Take first few recipes for a simple demo network
         recipes = visited_df["Recipe"].head(8).tolist()
-
-        # Example: connect recipes in a pattern (replace with your own logic if you have ingredient overlap data)
         edges = [(recipes[i], recipes[j]) for i in range(len(recipes))
                  for j in range(i + 1, len(recipes)) if i % 2 == j % 3]
 
-        # Create and position the graph
         G = nx.Graph()
         G.add_edges_from(edges)
         pos = nx.spring_layout(G, seed=42)
 
+        # Prepare edge traces
         edge_x, edge_y = [], []
         for edge in G.edges():
             x0, y0 = pos[edge[0]]
@@ -172,64 +166,57 @@ with tab4:
             mode='lines'
         )
 
+        # Prepare node traces
         node_x, node_y = [], []
         for node in G.nodes():
             x, y = pos[node]
             node_x.append(x)
             node_y.append(y)
 
+        # Create node trace
         node_trace = go.Scatter(
-            x=node_x, y=node_y,
+            x=node_x, 
+            y=node_y,
             mode='markers+text',
             text=[str(n) for n in G.nodes()],
             textposition="top center",
-            hoverinfo='text',
-            marker=dict(
-                showscale=True,
-                colorscale='YlGnBu',
-                color=[len(list(G.neighbors(n))) for n in G.nodes()],
-                size=18,
-                colorbar=dict(
-                    thickness=15,
-                    title='Connections',
-                    xanchor='left',
-                    titleside='right'
-                ),
-                line_width=2)
+            hoverinfo='text'
+        )
+        
+        # Set marker properties
+        node_trace.marker = dict(
+            showscale=True,
+            colorscale='YlGnBu',
+            color=[len(list(G.neighbors(n))) for n in G.nodes()],
+            size=18,
+            line_width=2
+        )
+        
+        # Add colorbar configuration
+        node_trace.marker.colorbar = dict(
+            thickness=15,
+            title=dict(text='Connections', side='right'),
+            xanchor='left'
         )
 
-        fig = go.Figure(data=[edge_trace, node_trace],
-                        layout=go.Layout(
-                            title="Ingredient Similarity Network",
-                            titlefont_size=20,
-                            showlegend=False,
-                            hovermode='closest',
-                            margin=dict(b=0, l=0, r=0, t=40),
-                            xaxis=dict(showgrid=False, zeroline=False),
-                            yaxis=dict(showgrid=False, zeroline=False)
-                        ))
+        # Create the figure
+        fig = go.Figure(data=[edge_trace, node_trace])
+        
+        # Update layout with proper title font settings
+        fig.update_layout(
+            title_text="Ingredient Similarity Network",
+            title_font=dict(size=20),
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=0, l=0, r=0, t=40),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+        )
 
         st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
         st.warning(f"Network visualization could not be generated: {str(e)}")
-
-    # 🔹 Word Cloud (your original code continues here)
-    st.subheader("Recipe Analysis")
-
-    if WORDCLOUD_AVAILABLE:
-        st.markdown("#### Common Ingredients")
-        try:
-            all_ingredients = " ".join([str(ing) for ing in visited_df['Recipe']])
-            wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_ingredients)
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.imshow(wordcloud, interpolation='bilinear')
-            ax.axis('off')
-            st.pyplot(fig)
-        except Exception as e:
-            st.warning(f"Could not generate word cloud: {str(e)}")
-    else:
-         st.info("WordCloud package not installed. Skipping ingredient cloud visualization.")
 
     
     # Show recipe statistics
